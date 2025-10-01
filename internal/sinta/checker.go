@@ -15,7 +15,7 @@ func CheckSintaStatus(issn string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("gagal melakukan HTTP GET request: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode != 200 {
 		return "", fmt.Errorf("status code tidak 200, melainkan: %d", res.StatusCode)
 	}

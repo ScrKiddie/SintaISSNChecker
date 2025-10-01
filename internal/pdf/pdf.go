@@ -1,6 +1,7 @@
 package pdf
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -37,7 +38,7 @@ func init() {
 	}
 }
 
-func ExtractISSNNumbers(inputPath string) ([]string, error) {
+func ExtractISSNNumbers(ctx context.Context, inputPath string) ([]string, error) {
 	pdfBytes, err := os.ReadFile(inputPath)
 	if err != nil {
 		return nil, fmt.Errorf("gagal membaca file PDF: %w", err)
@@ -72,6 +73,12 @@ func ExtractISSNNumbers(inputPath string) ([]string, error) {
 	var allText string
 
 	for pageNum := 0; pageNum < pageCount.PageCount; pageNum++ {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
 		pageText, err := instance.GetPageText(&requests.GetPageText{
 			Page: requests.Page{
 				ByIndex: &requests.PageByIndex{
