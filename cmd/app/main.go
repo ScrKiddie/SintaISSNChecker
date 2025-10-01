@@ -2,83 +2,79 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
-	"sinta/internal/config"
 	"sinta/internal/pdf"
 	"sinta/internal/sinta"
 	"strings"
 )
 
+var logger *slog.Logger
+
+func init() {
+	logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+}
+
 func main() {
-	err := config.LoadEnv()
-	if err != nil {
-		log.Fatalf("error loading .env file: %v", err)
-	}
-
-	unipdfKey := config.GetEnvVar("UNIPDF_KEY")
-	if unipdfKey == "" {
-		log.Fatal("UNIPDF_KEY belum diisi di .env file")
-	}
-
-	err = config.SetUnipdfKey(unipdfKey)
-	if err != nil {
-		log.Fatalf("gagal setting UNIPDF_KEY: %v", err)
-	}
-
 	files, err := os.ReadDir("./pdf")
 	if err != nil {
-		log.Fatalf("error baca directory: %v\n", err)
+		logger.Error("gagal membaca direktori", "error", err)
+		os.Exit(1)
 	}
 
 	if len(files) == 0 {
-		fmt.Println("tidak terdapat file dalam folder pdf, program dihentikan")
+		logger.Warn("tidak ada file di dalam direktori 'pdf', program dihentikan")
 		return
 	}
 
 	for i, file := range files {
 		if strings.HasSuffix(file.Name(), ".pdf") {
 			filePath := "./pdf/" + file.Name()
-			fmt.Printf("%s%d. proses file: %s\n", func() string {
-				if i == 0 {
-					return ""
-				} else {
-					return "\n"
-				}
-			}(), i+1, filePath)
+			logger.Info("memulai pemrosesan file", "file_number", i+1, "file_path", filePath)
 
 			issnNumbers, err := pdf.ExtractISSNNumbers(filePath)
 			if err != nil {
-				fmt.Printf("error extract issn dari %s: %v\n", filePath, err)
+				logger.Error("gagal mengekstrak ISSN dari file", "file_path", filePath, "error", err)
 				continue
 			}
 
 			if len(issnNumbers) == 0 {
-				fmt.Printf("tidek ditemukan ISSN valid di file %s\n", filePath)
+				logger.Warn("tidak ditemukan ISSN di dalam file", "file_path", filePath)
 				continue
 			}
 
 			hasSinta := false
 			var accreditation string
 			for _, issn := range issnNumbers {
-				fmt.Printf("cek status untuk ISSN: %s\n", issn)
-				accreditation = sinta.CheckSintaStatus(issn)
+				logger.Info("memeriksa status SINTA untuk ISSN", "issn", issn)
+				accreditation, err = sinta.CheckSintaStatus(issn)
+				if err != nil {
+					logger.Error("gagal memeriksa status SINTA", "issn", issn, "error", err)
+					continue
+				}
 				if accreditation != "" {
 					hasSinta = true
+					logger.Info("ditemukan akreditasi SINTA", "issn", issn, "akreditasi", accreditation)
 					break
 				}
 			}
 
 			if hasSinta {
-				newFileName := fmt.Sprintf("./pdf/%s - %s.pdf", strings.TrimLeft(accreditation, " "), strings.TrimSuffix(file.Name(), ".pdf"))
+				expectedPrefix := fmt.Sprintf("%s - ", strings.TrimSpace(accreditation))
+				if strings.HasPrefix(file.Name(), expectedPrefix) {
+					logger.Info("file sudah memiliki akreditasi SINTA di namanya, tidak diubah", "file_path", filePath, "akreditasi", accreditation)
+					continue
+				}
+
+				newFileName := fmt.Sprintf("./pdf/%s - %s.pdf", strings.TrimSpace(accreditation), strings.TrimSuffix(file.Name(), ".pdf"))
 				err := os.Rename(filePath, newFileName)
 				if err != nil {
-					log.Printf("error ganti nama file %s jadi %s: %v\n", filePath, newFileName, err)
+					logger.Error("gagal mengganti nama file", "old_path", filePath, "new_path", newFileName, "error", err)
 				} else {
-					fmt.Printf("file sudah diganti nama jadi: %s\n", newFileName)
+					logger.Info("berhasil mengganti nama file", "new_path", newFileName)
 				}
 			} else {
-				fmt.Printf("file tidak terdaftar di SINTA: %s. File tetap disimpan tanpa perubahan nama\n", filePath)
+				logger.Info("jurnal tidak terakreditasi SINTA, nama file tidak diubah", "file_path", filePath)
 			}
 		}
 	}

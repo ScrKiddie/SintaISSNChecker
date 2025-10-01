@@ -1,7 +1,7 @@
 # SintaISSNChecker
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/43d20aad-79bd-48c4-a92d-8b53a7347809" alt="SintaISSNChecker" width="400">
+<img src="https://github.com/user-attachments/assets/e2f15cb6-a52f-4bab-95ae-7ea13d1a3514" alt="SintaISSNChecker" width="400">
 </p>
 
 **SintaISSNChecker** adalah sebuah aplikasi berbasis Go yang digunakan untuk memeriksa status akreditasi jurnal berdasarkan ISSN di situs SINTA (Science and Technology Index) dan mengelola file PDF terkait. Aplikasi ini secara otomatis mengganti nama file PDF jika ISSN yang terdeteksi memiliki status akreditasi di SINTA.
@@ -12,18 +12,15 @@
 - Cek status akreditasi ISSN di situs SINTA.
 - Penamaan ulang file PDF berdasarkan status akreditasi di SINTA.
 
-## Cara Pakai
+## Cara Penggunaan
 
-1. **Compile Program**
+1. **Siapkan File PDF**
+   <br>Masukkan semua file PDF jurnal yang ingin Anda proses ke dalam folder `pdf`. Jika folder tersebut belum ada, silakan buat terlebih dahulu di direktori utama proyek.
 
-2. **Masukkan Key UniPDF**
-   <br> Edit file `.env` di root folder proyek dan masukkan **UNIPDF_KEY** Anda yang didapatkan dari [UniPDF Metered License](https://www.unidoc.io/unipdf/):
-      ```
-      UNIPDF_KEY=YOUR_UNIPDF_KEY
-      ```
+2. **Jalankan Program**
+   <br>Buka terminal di direktori utama proyek dan jalankan perintah berikut:
+   ```bash
+   go run ./cmd/app/main.go
+   ```
+   Program akan secara otomatis memproses semua file di dalam folder `pdf`. File yang jurnalnya terakreditasi SINTA akan diganti namanya, contohnya: `SINTA 2 Accredited - Nama Jurnal Asli.pdf`.
 
-3. **Isi Folder PDF**
-   <br>Siapkan file-file PDF jurnal yang ingin diproses dan masukkan ke dalam folder `pdf` di root proyek.
-
-4. **Jalankan Program**
-   <br>Program akan memproses semua file PDF dalam folder `pdf`, mengekstrak ISSN, mengecek status akreditasi di SINTA, dan mengganti nama file jika ISSN terdaftar di SINTA.
