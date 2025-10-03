@@ -3,7 +3,6 @@ package pdf
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"regexp"
 	"time"
@@ -15,30 +14,59 @@ import (
 
 var pool pdfium.Pool
 var instance pdfium.Pdfium
-var logger *slog.Logger
 var regexPattern = `(?i)ISSN\s*[:\-\s]*\D*(\d{4})[\s\-]*\D*(\d{4})`
+var initialized = false
 
-func init() {
-	logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
-	var err error
-	pool, err = webassembly.Init(webassembly.Config{
+func initPDFium() error {
+	if initialized {
+		return nil
+	}
+
+	originalStdout := os.Stdout
+	originalStderr := os.Stderr
+
+	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("gagal membuka /dev/null: %w", err)
+	}
+	defer func() {
+		if closeErr := devNull.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close /dev/null: %v\n", closeErr)
+		}
+	}()
+
+	os.Stdout = devNull
+	os.Stderr = devNull
+
+	defer func() {
+		os.Stdout = originalStdout
+		os.Stderr = originalStderr
+	}()
+
+	var initErr error
+	pool, initErr = webassembly.Init(webassembly.Config{
 		MinIdle:  1,
 		MaxIdle:  1,
 		MaxTotal: 1,
 	})
-	if err != nil {
-		logger.Error("gagal menginisialisasi PDFium, program dihentikan", "error", err)
-		os.Exit(1)
+	if initErr != nil {
+		return fmt.Errorf("gagal menginisialisasi PDFium: %w", initErr)
 	}
 
-	instance, err = pool.GetInstance(time.Second * 30)
-	if err != nil {
-		logger.Error("gagal mendapatkan instance PDFium, program dihentikan", "error", err)
-		os.Exit(1)
+	instance, initErr = pool.GetInstance(time.Second * 30)
+	if initErr != nil {
+		return fmt.Errorf("gagal mendapatkan instance PDFium: %w", initErr)
 	}
+
+	initialized = true
+	return nil
 }
 
 func ExtractISSNNumbers(ctx context.Context, inputPath string) ([]string, error) {
+	if err := initPDFium(); err != nil {
+		return nil, err
+	}
+
 	pdfBytes, err := os.ReadFile(inputPath)
 	if err != nil {
 		return nil, fmt.Errorf("gagal membaca file PDF: %w", err)
@@ -53,7 +81,7 @@ func ExtractISSNNumbers(ctx context.Context, inputPath string) ([]string, error)
 	defer func(instance pdfium.Pdfium, request *requests.FPDF_CloseDocument) {
 		_, err := instance.FPDF_CloseDocument(request)
 		if err != nil {
-			logger.Warn("gagal menutup dokumen PDF", "error", err)
+			_ = err
 		}
 	}(instance, &requests.FPDF_CloseDocument{
 		Document: doc.Document,
@@ -88,7 +116,6 @@ func ExtractISSNNumbers(ctx context.Context, inputPath string) ([]string, error)
 			},
 		})
 		if err != nil {
-			logger.Warn("gagal mengekstrak teks dari halaman", "halaman", pageNum+1, "error", err)
 			continue
 		}
 

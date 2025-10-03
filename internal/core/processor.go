@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"sinta/internal/pdf"
-	"sinta/internal/sinta"
 	"strings"
 )
 
@@ -17,6 +16,7 @@ type ProcessResult struct {
 	NotAccreditedFiles   []string
 	AlreadyRenamedFiles  []string
 	ProcessingErrorFiles []string
+	ISSNNotFoundFiles    []string
 }
 
 type ProgressUpdater func(percent int, text string) error
@@ -51,7 +51,7 @@ func ProcessFiles(ctx context.Context, logger *slog.Logger, files []string, upda
 
 		if len(issnNumbers) == 0 {
 			logger.Warn("Tidak ditemukan ISSN di dalam file", "file", filepath.Base(filePath))
-			result.ProcessingErrorFiles = append(result.ProcessingErrorFiles, filePath)
+			result.ISSNNotFoundFiles = append(result.ISSNNotFoundFiles, filePath)
 			continue
 		}
 
@@ -63,7 +63,7 @@ func ProcessFiles(ctx context.Context, logger *slog.Logger, files []string, upda
 
 		for _, issn := range issnNumbers {
 			logger.Info("Memeriksa status SINTA", "issn", issn)
-			accreditation, err = sinta.CheckSintaStatus(issn)
+			accreditation, err = CheckSintaStatus(issn)
 			if err != nil {
 				logger.Error("Gagal memeriksa status SINTA", "issn", issn, "error", err.Error())
 				sintaCheckFailed = true

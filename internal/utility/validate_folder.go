@@ -1,4 +1,4 @@
-package ui
+package utility
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func validatePDFFolder(path string) ([]string, error) {
+func ValidatePDFFolder(path string) ([]string, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("gagal akses folder: %w", err)

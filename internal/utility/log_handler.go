@@ -1,4 +1,4 @@
-package logging
+package utility
 
 import (
 	"context"
@@ -21,6 +21,9 @@ func NewCaptureHandler(handler slog.Handler) *CaptureHandler {
 }
 
 func (h *CaptureHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	if h.handler == nil {
+		return false
+	}
 	return h.handler.Enabled(ctx, level)
 }
 
@@ -46,14 +49,23 @@ func (h *CaptureHandler) Handle(ctx context.Context, r slog.Record) error {
 	h.logMessages = append(h.logMessages, buf.String())
 	h.logMutex.Unlock()
 
-	return h.handler.Handle(ctx, r)
+	if h.handler != nil {
+		return h.handler.Handle(ctx, r)
+	}
+	return nil
 }
 
 func (h *CaptureHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	if h.handler == nil {
+		return NewCaptureHandler(nil)
+	}
 	return NewCaptureHandler(h.handler.WithAttrs(attrs))
 }
 
 func (h *CaptureHandler) WithGroup(name string) slog.Handler {
+	if h.handler == nil {
+		return NewCaptureHandler(nil)
+	}
 	return NewCaptureHandler(h.handler.WithGroup(name))
 }
 

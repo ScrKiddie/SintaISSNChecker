@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sinta/internal/core"
-	"sinta/internal/logging"
+	"sinta/internal/utility"
 	"strings"
 
 	"github.com/ncruces/zenity"
@@ -18,10 +18,10 @@ import (
 
 type AppUI struct {
 	logger  *slog.Logger
-	logHndl *logging.CaptureHandler
+	logHndl *utility.CaptureHandler
 }
 
-func NewAppUI(logger *slog.Logger, logHndl *logging.CaptureHandler) *AppUI {
+func NewAppUI(logger *slog.Logger, logHndl *utility.CaptureHandler) *AppUI {
 	return &AppUI{
 		logger:  logger,
 		logHndl: logHndl,
@@ -46,7 +46,6 @@ func (app *AppUI) Run() {
 			if errors.Is(err, zenity.ErrCanceled) {
 				return
 			}
-			app.logger.Error("Gagal menampilkan menu", "error", err.Error())
 			continue
 		}
 
@@ -68,19 +67,16 @@ func (app *AppUI) selectFolder() {
 	)
 	if err != nil {
 		if !errors.Is(err, zenity.ErrCanceled) {
-			app.logger.Error("Gagal memilih folder", "error", err.Error())
+			_ = zenity.Error("Gagal memilih folder", zenity.Title("Error"))
 		}
 		return
 	}
 
-	files, err := validatePDFFolder(folderPath)
+	files, err := utility.ValidatePDFFolder(folderPath)
 	if err != nil {
-		app.logger.Error("Validasi folder gagal", "error", err.Error())
 		_ = zenity.Error(err.Error(), zenity.Title("Error"))
 		return
 	}
-
-	app.logger.Info("Berhasil memilih file PDF dari folder", "count", len(files), "folder", folderPath)
 
 	if showConfirmationDialog(len(files)) {
 		app.startProcessing(files)
@@ -97,12 +93,10 @@ func (app *AppUI) selectFiles() {
 	)
 	if err != nil {
 		if !errors.Is(err, zenity.ErrCanceled) {
-			app.logger.Error("Gagal memilih file", "error", err.Error())
+			_ = zenity.Error("Gagal memilih file", zenity.Title("Error"))
 		}
 		return
 	}
-
-	app.logger.Info("Berhasil memilih file PDF", "count", len(filePaths))
 
 	if showConfirmationDialog(len(filePaths)) {
 		app.startProcessing(filePaths)
@@ -118,18 +112,17 @@ func (app *AppUI) startProcessing(files []string) {
 		zenity.Height(150),
 	)
 	if err != nil {
-		app.logger.Error("Gagal membuat progress dialog", "error", err.Error())
+		_ = zenity.Error("Gagal membuat progress dialog", zenity.Title("Error"))
 		return
 	}
 	defer func(progress zenity.ProgressDialog) {
 		err := progress.Close()
 		if err != nil && !errors.Is(err, zenity.ErrCanceled) {
-			app.logger.Warn("Gagal menutup progress dialog", "error", err)
 		}
 	}(progress)
 
 	app.logHndl.ResetLogs()
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	updateProgress := func(percent int, text string) error {
@@ -162,13 +155,11 @@ func (app *AppUI) showLogs() {
 	tempFile := filepath.Join(os.TempDir(), "sinta_log.txt")
 	file, err := os.Create(tempFile)
 	if err != nil {
-		app.logger.Error("Gagal membuat file log sementara", "error", err.Error())
 		_ = zenity.Error("Gagal membuat file log sementara.", zenity.Title("Error"))
 		return
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			app.logger.Warn("Gagal menutup file log sementara", "error", err)
 		}
 	}()
 
@@ -185,7 +176,6 @@ func (app *AppUI) showLogs() {
 	}
 
 	if err != nil {
-		app.logger.Error("Gagal menulis ke file log sementara", "error", err)
 		_ = zenity.Error("Gagal menulis ke file log sementara.", zenity.Title("Error"))
 		return
 	}
@@ -228,6 +218,7 @@ func showResult(result core.ProcessResult) {
 	writeSection("BERHASIL DIUBAH", result.SuccessFiles)
 	writeSection("GAGAL RENAME", result.FailedFiles)
 	writeSection("ERROR PROSES", result.ProcessingErrorFiles)
+	writeSection("TIDAK DITEMUKAN ISSN", result.ISSNNotFoundFiles)
 	writeSection("TIDAK TERAKREDITASI", result.NotAccreditedFiles)
 	writeSection("SUDAH SESUAI", result.AlreadyRenamedFiles)
 
@@ -255,7 +246,6 @@ func openFile(path string) {
 	default:
 		cmd = exec.Command("xdg-open", path)
 	}
-	if err := cmd.Run(); err != nil {
-		slog.Error("Gagal membuka file", "path", path, "error", err)
-	}
+
+	_ = cmd.Run()
 }

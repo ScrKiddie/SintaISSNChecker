@@ -17,13 +17,9 @@ Aplikasi ini bekerja dalam beberapa langkah sederhana:
 
 ## Cara Penggunaan
 
-1. **Build Aplikasi**
-   <br>Buka terminal di direktori utama proyek dan jalankan perintah berikut:
+1. Buka terminal di direktori utama proyek dan jalankan perintah berikut:
    ```bash
    go run ./cmd/app/main.go
    ```
 
-2. **Pilih Folder & Mulai Proses**
-   - Setelah aplikasi terbuka, klik tombol **"Pilih Folder"** untuk memilih direktori yang berisi file-file PDF Anda.
-   - Klik tombol **"Mulai Proses"** untuk memulai pemindaian dan penggantian nama file.
-   - Anda dapat memantau progres dan melihat log detail proses langsung di jendela aplikasi.
+2. Setelah jendela aplikasi muncul, klik tombol untuk memilih file PDF atau folder yang akan dicek kemudian biarkan aplikasi bekerja. File-file yang terakreditasi SINTA namanya akan berubah.
