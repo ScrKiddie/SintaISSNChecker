@@ -1,0 +1,37 @@
+name: Build and Release (Windows Only)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Windows App
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 'stable'
+
+      - name: Build for Windows (GUI)
+        run: GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui" -o app.exe ./cmd/app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            app.exe
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'manual-release' }}
+          name: ${{ github.ref_type == 'tag' && format('Release {0}', github.ref_name) || 'Manual Release' }}
+          body: |
+            ${{ github.ref_type == 'tag' && format('Automated release for tag {0}', github.ref_name) || 'Manually triggered release' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

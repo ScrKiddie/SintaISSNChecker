@@ -17,9 +17,8 @@ Aplikasi ini bekerja dalam beberapa langkah sederhana:
 
 ## Cara Penggunaan
 
-1. Buka terminal di direktori utama proyek dan jalankan perintah berikut:
-   ```bash
-   go run ./cmd/app/main.go
+1. Download file executable yang ada di [release](https://github.com/ScrKiddie/SintaISSNChecker/releases) atau build aplikasi sendiri menggunakan perintah berikut:
+    ```bash
+   go build ./cmd/app/ -o app.exe
    ```
-
-2. Setelah jendela aplikasi muncul, klik tombol untuk memilih file PDF atau folder yang akan dicek kemudian biarkan aplikasi bekerja. File-file yang terakreditasi SINTA namanya akan berubah.
+2. Buka aplikasi dan klik tombol untuk memilih file PDF atau folder yang akan dicek kemudian biarkan aplikasi bekerja. File-file yang terakreditasi SINTA namanya akan berubah.
